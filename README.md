@@ -1,96 +1,116 @@
-# SimpleSAMLphp loginaudit module
+# Login audit for SimpleSAMLphp
 
-Adds a **Login audit** tab to the SimpleSAMLphp admin interface. It lists
-`AUDIT-LOGIN` entries from the SimpleSAMLphp log (active and rotated files) with
-search, pagination and cached IP geolocation. It also provides a webcron endpoint
-for daily log rotation and retention.
+Keep a record of who logged in, when and from where. This module logs every successful
+login, shows the history in the SimpleSAMLphp admin interface, and takes care of rotating
+and deleting old logs.
 
 ![The Login audit tab in the SimpleSAMLphp admin interface](docs/admin-audit.png)
+
+## Features
+
+- **Login log:** one line per successful login with user ID, name, email, identity provider and IP address.
+- **Admin tab:** browse all logins, newest first, with search across every field and pagination.
+- **IP locations:** city and country flag per IP address. Private and internal addresses are labelled as such.
+- **Log rotation:** daily rotation and automatic deletion of old logs through a URL you call from a cron service.
 
 ## Requirements
 
 - SimpleSAMLphp 2.x with the `admin` module
-- PHP 8.3+, `ext-pdo` (and `ext-pdo_sqlite` for the IP location cache)
+- PHP 8.3 or newer
+- Optional: the `pdo_sqlite` PHP extension, used to cache IP locations
 
 ## Installation
 
-```bash
-composer require eiclu/simplesamlphp-module-loginaudit
-```
+1. Install the module:
 
-Or copy this directory to `modules/loginaudit/` (or your custom module directory),
-then enable the module in `config/config.php`:
+   ```bash
+   composer require eiclu/simplesamlphp-module-loginaudit
+   ```
 
-```php
-'module.enable' => ['loginaudit' => true],
-```
+   Without Composer, copy the module into `modules/loginaudit/` instead.
 
-Copy `config-templates/module_loginaudit.php` to your `config/` folder and adjust it.
-Clear SimpleSAMLphp's cached routes in `tempdir` after installing or updating.
+2. Enable it in `config/config.php`:
 
-## Writing the audit log
+   ```php
+   'module.enable' => ['loginaudit' => true],
+   ```
 
-Enable the bundled authproc filter so every successful login is logged. Add it to
-`authproc.idp` (or `authproc.sp`) in `config/config.php`, or to the metadata of a single IdP/SP:
+3. Copy `config-templates/module_loginaudit.php` to your `config/` folder and adjust it
+   (see [Configuration](#configuration)).
+
+4. Add the filter that writes the log lines (see [Logging logins](#logging-logins)).
+
+5. If the new tab or the rotation URL returns "not found", delete the cached route files in
+   SimpleSAMLphp's `tempdir`.
+
+The tab appears as **Login audit** in the admin menu, next to **Log out**.
+
+## Logging logins
+
+Add the `loginaudit:Audit` filter to the authentication processing chain. To log every login
+through your IdP, put it in `authproc.idp` in `config/config.php`:
 
 ```php
 'authproc.idp' => [
     90 => [
         'class' => 'loginaudit:Audit',
-        'user_attribute' => 'uid',          // default: uid
+        'user_attribute' => 'uid',          // attribute used as user ID (default: uid)
         'name_attribute' => 'displayName',  // default: displayName
         'email_attribute' => 'mail',        // default: mail
     ],
 ],
 ```
 
-The filter writes lines like this at `NOTICE` level (the SimpleSAMLphp default). Make sure your logging level
-(`logging.level`) is `NOTICE` or more verbose:
+When SimpleSAMLphp acts as a service provider, add the same entry to the `authproc` of your
+`saml:SP` source in `config/authsources.php`. Use one place only, or each login is logged twice.
+
+- Filters run in ascending order. Give the filter a **larger number** than the filters that set the attributes it reads (in the example above, `90`).
+- `logging.level` in `config/config.php` must be `NOTICE` (the default) or more verbose.
+- The IP address is the one PHP sees as `REMOTE_ADDR`. Behind a reverse proxy, configure your web server to pass on the client address.
+
+Each login produces a line like this:
 
 ```
-Nov 10 12:00:00 host NOTICE [track] AUDIT-LOGIN: user="…" name="…" email="…" idp="…" ip="…"
+Nov 10 12:00:00 host NOTICE [track] AUDIT-LOGIN: user="mmustermann" name="Maria Mustermann" email="maria.mustermann@example.org" idp="https://idp.example.org/saml2/idp/metadata.php" ip="203.0.113.24"
 ```
 
-The module reads exactly this format, so lines written by your own code work as well.
-Place the filter after the one that sets the attributes it reads.
+## Configuration
 
-## Log rotation (webcron)
+All options go in `config/module_loginaudit.php` and are optional.
 
-Set a long random `rotate_token` in `module_loginaudit.php`, then call:
+| Option           | Default                                    | Description |
+|------------------|--------------------------------------------|-------------|
+| `logdir`         | `loggingdir` from `config.php`             | Folder that contains the log files. |
+| `logfile`        | `logging.logfile` from `config.php`        | Name of the active log file. Rotated files are named `<name>-YYYY-MM-DD.log`. |
+| `cache_db`       | `<tempdir>/loginaudit_ipcache.sqlite`      | SQLite file where IP locations are cached. |
+| `geo_lookup`     | `true`                                     | Look up unknown IP addresses online. `false` uses only the cache. |
+| `rotate_token`   | empty (rotation disabled)                  | Secret that authorizes the rotation URL. |
+| `retention_days` | `120`                                      | Days to keep rotated logs. |
+| `page_size`      | `50`                                       | Logins per page in the admin tab. |
 
-```
-https://<host>/<base>/module.php/loginaudit/rotate?token=<rotate_token>
-```
+## Log rotation
 
-once per day. It copies the active log to `<name>-YYYY-MM-DD.log`, truncates the
-active log, and deletes archives older than `retention_days` (default 120, which
-satisfies SIRTFI's ≥ 90 days and GDPR's ≤ 180 days guidance). The endpoint is
-disabled while `rotate_token` is empty.
+Without rotation, the log file grows forever. To rotate it automatically:
 
-## Tests
+1. Set a long random `rotate_token`, for example the output of
+   `php -r 'echo bin2hex(random_bytes(24));'`.
+2. Call this URL once a day from a cron or webcron service:
 
-The integration tests start a real SimpleSAMLphp (installed as a dev dependency) with PHP's
-built-in web server. The same installation acts as test SAML IdP and SP, and the tests run
-a full browser-style login against it:
+   ```
+   https://<your-host>/<base-path>/module.php/loginaudit/rotate?token=<rotate_token>
+   ```
 
-- **Log writing:** a successful SAML login writes an `AUDIT-LOGIN` line (filter attached to the IdP
-  and, in a second run, to the SP), a failed login does not, and the entries show up in the admin tab.
-- **Log rotation:** the webcron endpoint archives the log, appends on a second run the same day,
-  prunes archives older than `retention_days`, and rejects a wrong or unset token.
-
-```bash
-composer install
-vendor/bin/phpunit
-```
-
-Requires PHP 8.3+ with the `bcmath`, `curl`, `intl`, `mbstring`, `openssl` and `xml` extensions.
-The tests also run in GitHub Actions (`.github/workflows/ci.yml`).
+Each call copies the active log to `simplesamlphp-YYYY-MM-DD.log`, empties the active log, and
+deletes archives older than `retention_days`. Rotated logs stay visible in the admin tab until they
+are deleted. The default of 120 days satisfies the SIRTFI minimum of 90 days and stays below the
+180 days commonly recommended under the GDPR.
 
 ## Privacy
 
-Unknown IPs are sent to ip-api.com for geolocation. Set `'geo_lookup' => false` to
-use only the local cache.
+Locations are looked up at [ip-api.com](https://ip-api.com), which receives the IP addresses
+shown in the tab. Results are cached locally. Set `'geo_lookup' => false` to keep all addresses
+on your server. The tab is only accessible to SimpleSAMLphp administrators.
 
 ## License
 
-LGPL-2.1-or-later, the same license as SimpleSAMLphp. See [LICENSE](LICENSE).
+[LGPL-2.1-or-later](LICENSE)

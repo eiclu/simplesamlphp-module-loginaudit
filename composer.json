@@ -1,6 +1,6 @@
 {
     "name": "eiclu/simplesamlphp-module-loginaudit",
-    "description": "Admin tab showing AUDIT-LOGIN entries from the SimpleSAMLphp log",
+    "description": "Login audit for SimpleSAMLphp: logs every successful login, shows the history in the admin interface and rotates old logs",
     "type": "simplesamlphp-module",
     "license": "LGPL-2.1-or-later",
     "require": {
