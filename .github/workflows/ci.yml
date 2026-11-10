@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    name: PHP ${{ matrix.php }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['8.3', '8.4', '8.5']
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: bcmath, curl, dom, intl, mbstring, openssl, pdo_sqlite, xml, zip
+          tools: composer:v2
+
+      - name: Lint
+        run: find src tests hooks config-templates -name '*.php' -print0 | xargs -0 -n1 php -l
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist
+
+      - name: Integration tests (SimpleSAMLphp + test IdP/SP)
+        run: vendor/bin/phpunit

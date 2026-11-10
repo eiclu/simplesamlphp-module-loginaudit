@@ -1,0 +1,57 @@
+.loginaudit-search {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5em;
+  margin: 1em 0 0.5em;
+}
+
+.loginaudit-search input[type="search"] {
+  flex: 1 1 18em;
+  max-width: 32em;
+}
+
+.loginaudit-summary,
+.loginaudit-empty {
+  color: #555;
+}
+
+.loginaudit-scroll {
+  overflow-x: auto;
+}
+
+.loginaudit-table {
+  width: 100%;
+  font-size: 0.9em;
+}
+
+.loginaudit-table td,
+.loginaudit-table th {
+  vertical-align: middle;
+}
+
+.loginaudit-date,
+.loginaudit-location {
+  white-space: nowrap;
+}
+
+.loginaudit-flag {
+  font-size: 1.15em;
+  margin-right: 0.3em;
+  vertical-align: middle;
+}
+
+.loginaudit-user {
+  display: inline-block;
+  max-width: 15em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: bottom;
+}
+
+.loginaudit-pager {
+  display: flex;
+  align-items: center;
+  gap: 1em;
+  margin-top: 1em;
+}

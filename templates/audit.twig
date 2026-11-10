@@ -1,0 +1,87 @@
+{% set pagetitle = 'Login audit' %}
+{% set frontpage_section = 'loginaudit' %}
+{% extends "base.twig" %}
+
+{% block preload %}
+<link rel="stylesheet" href="{{ asset('css/admin.css', 'admin') }}">
+<link rel="stylesheet" href="{{ asset('css/loginaudit.css', 'loginaudit') }}">
+{% endblock %}
+
+{% block content %}
+  {%- include "@admin/includes/menu.twig" %}
+
+  <h2>Login audit</h2>
+
+  {% if log_missing %}
+  <div class="message-box warning">
+    No readable log file found in <code>{{ log_dir }}</code>. Check <code>loggingdir</code> and
+    <code>logging.logfile</code> in config.php, or set <code>logdir</code> in module_loginaudit.php.
+  </div>
+  {% endif %}
+
+  <form method="get" action="" class="pure-form loginaudit-search" role="search">
+    <input type="search" name="q" value="{{ q }}" placeholder="Name, email, user ID, IP or IdP" aria-label="Search logins">
+    <button type="submit" class="pure-button pure-button-primary">Search</button>
+    {% if q %}<a class="pure-button" href="?">Clear</a>{% endif %}
+  </form>
+
+  <p class="loginaudit-summary">
+    {% if q %}
+      {{ total }} of {{ total_all }} logins match “{{ q }}”.
+    {% else %}
+      {{ total_all }} logins in {{ file_count }} log file{{ file_count == 1 ? '' : 's' }}, newest first.
+    {% endif %}
+  </p>
+
+  {% if rows is empty %}
+    <p class="loginaudit-empty">
+      {% if q %}No logins match your search. Try a shorter term or <a href="?">clear the search</a>.
+      {% else %}No AUDIT-LOGIN entries found yet. Entries appear here after the next successful login.{% endif %}
+    </p>
+  {% else %}
+  <div class="loginaudit-scroll">
+    <table class="pure-table pure-table-striped loginaudit-table">
+      <thead>
+        <tr>
+          <th scope="col">Date</th>
+          <th scope="col">IP</th>
+          <th scope="col">Location</th>
+          <th scope="col">Name</th>
+          <th scope="col">Email</th>
+          <th scope="col">User ID</th>
+          <th scope="col">IdP</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+        <tr>
+          <td class="loginaudit-date">{{ row.date }}</td>
+          <td><code>{{ row.ip }}</code></td>
+          <td class="loginaudit-location">{% if row.flag %}<span class="loginaudit-flag" aria-hidden="true">{{ row.flag }}</span>{% endif %}{{ row.location }}</td>
+          <td>{{ row.name }}</td>
+          <td>{% if row.email %}<a href="mailto:{{ row.email }}">{{ row.email }}</a>{% endif %}</td>
+          <td><span class="loginaudit-user" title="{{ row.user }}">{{ row.user }}</span></td>
+          <td title="{{ row.idp }}">{{ row.idp_host }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if pages > 1 %}
+  <nav class="loginaudit-pager" aria-label="Pages">
+    {% if page > 1 %}
+      <a class="pure-button" href="?q={{ q|url_encode }}&amp;page={{ page - 1 }}">Newer</a>
+    {% else %}
+      <span class="pure-button pure-button-disabled">Newer</span>
+    {% endif %}
+    <span>Page {{ page }} of {{ pages }}</span>
+    {% if page < pages %}
+      <a class="pure-button" href="?q={{ q|url_encode }}&amp;page={{ page + 1 }}">Older</a>
+    {% else %}
+      <span class="pure-button pure-button-disabled">Older</span>
+    {% endif %}
+  </nav>
+  {% endif %}
+  {% endif %}
+{% endblock %}

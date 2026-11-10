@@ -1,0 +1,15 @@
+---
+
+loginaudit-main:
+  path: /
+  defaults: {
+    _controller: 'SimpleSAML\Module\loginaudit\Controller\Audit::main'
+  }
+  methods: [GET]
+
+loginaudit-rotate:
+  path: /rotate
+  defaults: {
+    _controller: 'SimpleSAML\Module\loginaudit\Controller\Rotate::main'
+  }
+  methods: [GET]

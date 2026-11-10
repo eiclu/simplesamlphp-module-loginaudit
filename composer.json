@@ -1,0 +1,37 @@
+{
+    "name": "eiclu/simplesamlphp-module-loginaudit",
+    "description": "Admin tab showing AUDIT-LOGIN entries from the SimpleSAMLphp log",
+    "type": "simplesamlphp-module",
+    "license": "LGPL-2.1-or-later",
+    "require": {
+        "php": "^8.3",
+        "ext-pdo": "*",
+        "simplesamlphp/composer-module-installer": "^1.7"
+    },
+    "suggest": {
+        "ext-pdo_sqlite": "Needed to cache IP locations"
+    },
+    "autoload": {
+        "psr-4": {
+            "SimpleSAML\\Module\\loginaudit\\": "src/"
+        }
+    },
+    "require-dev": {
+        "simplesamlphp/simplesamlphp": "^2.4",
+        "phpunit/phpunit": "^12"
+    },
+    "config": {
+        "allow-plugins": {
+            "simplesamlphp/composer-module-installer": true,
+            "simplesamlphp/composer-xmlprovider-installer": true
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "SimpleSAML\\Module\\loginaudit\\Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "test": "phpunit"
+    }
+}
