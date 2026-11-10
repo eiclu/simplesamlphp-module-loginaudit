@@ -15,7 +15,8 @@ and deleting old logs.
 
 ## Requirements
 
-- SimpleSAMLphp 2.x with the `admin` module
+- SimpleSAMLphp 2.x
+- The `admin` module, only if you want the **Login audit** tab. Logging and log rotation work without it.
 - PHP 8.3 or newer
 - Optional: the `pdo_sqlite` PHP extension, used to cache IP locations
 
