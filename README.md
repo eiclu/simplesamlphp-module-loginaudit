@@ -102,9 +102,8 @@ Without rotation, the log file grows forever. To rotate it automatically:
    ```
 
 Each call copies the active log to `simplesamlphp-YYYY-MM-DD.log`, empties the active log, and
-deletes archives older than `retention_days`. Rotated logs stay visible in the admin tab until they
-are deleted. The default of 120 days satisfies the SIRTFI minimum of 90 days and stays below the
-180 days commonly recommended under the GDPR.
+deletes archives older than `retention_days` (default: 120). Rotated logs stay visible in the admin
+tab until they are deleted.
 
 ## Privacy
 

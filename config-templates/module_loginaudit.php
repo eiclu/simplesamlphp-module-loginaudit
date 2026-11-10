@@ -26,7 +26,7 @@ $config = [
     // Generate a token with: php -r 'echo bin2hex(random_bytes(24));'
     'rotate_token' => '',
 
-    // Days to keep rotated logs (SIRTFI >= 90, GDPR <= 180).
+    // Days to keep rotated logs.
     'retention_days' => 120,
 
     // Logins shown per page.
